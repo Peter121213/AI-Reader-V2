@@ -103,7 +103,20 @@ async def get_novel(novel_id: str) -> dict | None:
     conn = await get_connection()
     try:
         cursor = await conn.execute(
-            "SELECT id, title, author, file_hash, total_chapters, total_words, is_sample, synopsis, created_at, updated_at FROM novels WHERE id = ?",
+            """
+            SELECT
+                n.id, n.title, n.author, n.file_hash, n.total_chapters, n.total_words,
+                n.is_sample, n.synopsis, n.created_at, n.updated_at,
+                COALESCE(
+                    CAST(SUM(CASE WHEN c.analysis_status = 'completed' THEN 1 ELSE 0 END) AS REAL)
+                    / NULLIF(SUM(CASE WHEN c.is_excluded = 0 THEN 1 ELSE 0 END), 0),
+                    0
+                ) AS analysis_progress
+            FROM novels n
+            LEFT JOIN chapters c ON c.novel_id = n.id
+            WHERE n.id = ?
+            GROUP BY n.id
+            """,
             (novel_id,),
         )
         row = await cursor.fetchone()

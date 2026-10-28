@@ -58,8 +58,13 @@ export default function ChatPage() {
       try {
         const n = await fetchNovel(novelId)
         if (!cancelled) {
+          // 防御：后端个别接口可能未返回 analysis_progress（如样本数据），缺省按 0 处理，避免显示 NaN
+          const progress =
+            typeof n.analysis_progress === "number" && Number.isFinite(n.analysis_progress)
+              ? n.analysis_progress
+              : 0
           setAnalysisInfo({
-            analyzed: Math.round(n.analysis_progress * n.total_chapters),
+            analyzed: Math.round(progress * n.total_chapters),
             total: n.total_chapters,
           })
         }

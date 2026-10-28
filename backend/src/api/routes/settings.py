@@ -506,6 +506,7 @@ async def save_cloud_config(req: CloudConfigRequest):
             ("cloud_provider", req.provider),
             ("cloud_base_url", req.base_url),
             ("cloud_model", req.model),
+            ("llm_mode", "openai"),
         ]:
             await conn.execute(
                 """INSERT INTO app_settings (key, value, updated_at)

@@ -90,6 +90,7 @@ class NovelResponse(BaseModel):
     total_chapters: int
     total_words: int
     is_sample: bool = False
+    analysis_progress: float = 0.0
     created_at: str
     updated_at: str
 
