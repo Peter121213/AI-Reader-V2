@@ -46,6 +46,44 @@ def _is_greeting(question: str) -> bool:
     return len(q) <= 12 and bool(_GREETING_RE.match(q))
 
 
+# 分词后的通用疑问/虚词停用词表：仅用于关键词检索，不影响实体匹配。
+# 只过滤纯虚词/疑问词，绝不过滤名词性内容词（判词/册子/金陵十二钗等）。
+_QUESTION_STOPWORDS: frozenset[str] = frozenset({
+    "的", "了", "是", "在", "吗", "呢", "啊", "吧", "么", "呀", "哦",
+    "什么", "哪里", "哪儿", "哪", "几", "哪章", "哪回", "第几", "多少",
+    "请问", "知道", "不知道", "有没有", "是否", "是不是", "可以", "能",
+    "能否", "告诉", "一下", "关于", "这个", "那个", "一个", "出现",
+    "出现", "发生", "写", "讲", "说", "以及", "就是", "其实", "的话",
+})
+
+
+def _tokenize_question(question: str) -> list[str]:
+    """中文分词：jieba 分词 + 停用词/标点过滤 + 去重保序。
+
+    解决中文无空格导致整句被当作单一关键词、原文 LIKE 无法命中的问题。
+    例如「太虚幻境中金陵十二钗册子上的诗在第几回」→
+    ['太虚幻境', '金陵十二钗', '册子', '诗']，其中「金陵十二钗」可
+    直接命中第 5 回原文。
+    """
+    try:
+        import jieba
+        words = [w.strip() for w in jieba.lcut(question)]
+    except Exception:
+        words = re.split(r"[\s，。！？、；：（）《》【】,.!?;:()\[\]<>·…—\-]+", question)
+    seen: set[str] = set()
+    out: list[str] = []
+    for w in words:
+        if len(w) < 2:
+            continue
+        if w in _QUESTION_STOPWORDS:
+            continue
+        if w in seen:
+            continue
+        seen.add(w)
+        out.append(w)
+    return out
+
+
 # 通用称谓/代词停用词表。这些词在问题中多为泛指（如"西游记的主人公是谁"），
 # 若作为别名参与子串匹配会误命中无关实体（"主人公"误中别名"公主"）。
 # 取舍：命中停用词表的一律跳过，宁可漏匹配也不错匹配——即使"陛下""菩萨"
@@ -560,7 +598,7 @@ async def query_stream(
             all_source_chapters.update(entity_chs)
 
     # Keyword retrieval from events
-    keywords = [w for w in question.split() if len(w) >= 2]
+    keywords = _tokenize_question(question)
     if not keywords:
         keywords = [question]
     keyword_ctx, kw_chs = _build_keyword_context(all_facts, keywords)
