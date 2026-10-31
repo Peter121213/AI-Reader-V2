@@ -84,6 +84,50 @@ def _tokenize_question(question: str) -> list[str]:
     return out
 
 
+async def _expand_keywords(
+    question: str,
+    base_keywords: list[str],
+) -> tuple[list[str], list[str]]:
+    """LLM 查询扩展（通用机制，不依赖任何书籍特定知识）。
+
+    问题词与原文词汇常失联（如「薛宝钗的判词」在原文中对应
+    「金陵十二钗」「册子」）：让 LLM 推断书内可能出现的强关联词，
+    再并入关键词做检索。返回 (合并后的关键词, 扩展出的新词)。
+
+    任何失败均静默回退为原关键词，不影响主流程。
+    """
+    if not base_keywords:
+        return base_keywords, []
+    try:
+        client = get_llm_client()
+        system = (
+            "你是小说内部检索助手。用户会给出一个关于某本小说的提问及其关键词。"
+            "请推断书中可能出现的、与问题强相关的其他词汇：同义词、相关人物、"
+            "相关地点、原文中可能出现的说法。只输出最多 3 个词，用逗号分隔，"
+            "不要解释、不要编号、不要输出任何其他内容。"
+        )
+        prompt = f"问题：{question}\n关键词：{'、'.join(base_keywords)}"
+        content, _ = await client.generate(
+            system=system,
+            prompt=prompt,
+            temperature=0.2,
+            max_tokens=80,
+            timeout=30,
+        )
+        if isinstance(content, dict):
+            return base_keywords, []
+        extra: list[str] = []
+        for part in re.split(r"[,，、;；\s]+", str(content).strip()):
+            part = part.strip()
+            if 1 < len(part) <= 8 and part not in base_keywords and part not in extra:
+                extra.append(part)
+        merged = base_keywords + extra[:3]
+        return merged, extra[:3]
+    except Exception:
+        logger.debug("query expansion failed, fallback to base keywords", exc_info=True)
+        return base_keywords, []
+
+
 # 通用称谓/代词停用词表。这些词在问题中多为泛指（如"西游记的主人公是谁"），
 # 若作为别名参与子串匹配会误命中无关实体（"主人公"误中别名"公主"）。
 # 取舍：命中停用词表的一律跳过，宁可漏匹配也不错匹配——即使"陛下""菩萨"
@@ -377,21 +421,70 @@ async def _build_text_context(
     novel_id: str,
     keywords: list[str],
     max_results: int = 5,
+    deep_read_chapters: int = 2,
+    deep_read_chars: int = 6000,
+    priority_keywords: list[str] | None = None,
 ) -> tuple[str, list[int]]:
-    """Build context from chapter text search."""
+    """Build context from chapter text search.
+
+    命中章节分两级（通用机制，不依赖任何书籍特定知识）：
+    - 精读：按优先级取前 deep_read_chapters 章，纳入该章完整原文
+      （最多 deep_read_chars 字符）。解决关键词命中位置在章首、而目标
+      内容（如判词）在章中部、±50 字 snippet 覆盖不到的漏检问题——
+      让 LLM 基于完整章节自行理解定位。
+    - 浏览：其余命中章仅取命中处 ±50 字 snippet，控制上下文体积。
+
+    优先级：priority_keywords（查询扩展词）命中的章节排在最前——
+    扩展词通常精准指向目标内容所在章节。
+    """
     chunks: list[str] = []
     source_chapters: set[int] = set()
 
-    for kw in keywords[:3]:
+    # 第一遍：按关键词收集全部命中，记录每个关键词命中了哪些章节
+    per_chapter_hits: dict[int, list[dict]] = {}
+    kw_hit_chapters: dict[str, set[int]] = {}
+    for kw in keywords[:4]:
         results = await chapter_store.search_chapters(novel_id, kw, limit=max_results)
+        kw_hit_chapters[kw] = {r["chapter_num"] for r in results}
         for r in results:
-            ch_num = r["chapter_num"]
-            if ch_num not in source_chapters:
-                block = f"[第{ch_num}章] {r.get('title', '')}: ...{r['snippet']}..."
-                chunks.append(block)
-                source_chapters.add(ch_num)
+            per_chapter_hits.setdefault(r["chapter_num"], []).append(r)
 
-    return "\n".join(chunks), sorted(source_chapters)
+    if not per_chapter_hits:
+        return "", []
+
+    priority_set = set(priority_keywords or [])
+    # 扩展词命中过的章节视为高优先级
+    prio_chapters: set[int] = set()
+    for pk in priority_set:
+        prio_chapters |= kw_hit_chapters.get(pk, set())
+
+    ranked = sorted(
+        per_chapter_hits.items(),
+        key=lambda kv: (kv[0] in prio_chapters, len(kv[1]), kv[0]),
+        reverse=True,
+    )
+
+    # 精读前 N 章完整原文
+    for ch_num, hits in ranked[:deep_read_chapters]:
+        row = await chapter_store.get_chapter_content(novel_id, ch_num)
+        full_text = (row or {}).get("content", "")
+        if not full_text:
+            continue
+        snippet = full_text[:deep_read_chars]
+        block = f"[第{ch_num}章 全文]\n{snippet}"
+        chunks.append(block)
+        source_chapters.add(ch_num)
+
+    # 其余命中章：±50 字 snippet
+    for ch_num, hits in ranked[deep_read_chapters:]:
+        if ch_num in source_chapters:
+            continue
+        for r in hits[:1]:
+            block = f"[第{ch_num}章] {r.get('title', '')}: ...{r['snippet']}..."
+            chunks.append(block)
+            source_chapters.add(ch_num)
+
+    return "\n\n".join(chunks), sorted(source_chapters)
 
 
 def _collect_all_entity_names(facts: list[dict]) -> set[str]:
@@ -601,6 +694,8 @@ async def query_stream(
     keywords = _tokenize_question(question)
     if not keywords:
         keywords = [question]
+    # LLM 查询扩展（通用）：补入与问题强相关的书内关联词
+    keywords, extra_keywords = await _expand_keywords(question, keywords)
     keyword_ctx, kw_chs = _build_keyword_context(all_facts, keywords)
     if keyword_ctx:
         context_parts.append("### 相关事件\n" + keyword_ctx)
@@ -626,7 +721,9 @@ async def query_stream(
         logger.warning("Semantic search unavailable: %s", e)
 
     # Full-text search in chapter content
-    text_ctx, text_chs = await _build_text_context(novel_id, keywords)
+    text_ctx, text_chs = await _build_text_context(
+        novel_id, keywords, priority_keywords=extra_keywords,
+    )
     if text_ctx:
         context_parts.append("### 原文片段\n" + text_ctx)
         all_source_chapters.update(text_chs)
