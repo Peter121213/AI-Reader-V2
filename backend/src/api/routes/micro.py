@@ -33,16 +33,18 @@ async def start_micro_analysis(
     if not novel:
         raise HTTPException(status_code=404, detail="小说不存在")
 
-    # 确定分析范围：默认全部已分析章节
-    analyzed_start, analyzed_end = await get_analyzed_range(novel_id)
-    if analyzed_start == 0:
-        raise HTTPException(status_code=400, detail="该小说尚未进行分析，无法拆解细章")
-    ch_start = (req.chapter_start if req and req.chapter_start else analyzed_start)
-    ch_end = (req.chapter_end if req and req.chapter_end else analyzed_end)
-    ch_start = max(ch_start, analyzed_start)
-    ch_end = min(ch_end, analyzed_end)
-    if ch_start > ch_end:
-        raise HTTPException(status_code=400, detail="章节范围无效")
+    # 确定分析范围：显式指定时用指定范围（不依赖全书预分析）；否则默认全部已分析章节
+    novel_total = int(novel.get("total_chapters", 0) or 0)
+    if req and req.chapter_start:
+        ch_start = max(1, int(req.chapter_start))
+        ch_end = min(novel_total, int(req.chapter_end or ch_start))
+        if novel_total == 0 or ch_start > ch_end:
+            raise HTTPException(status_code=400, detail="章节范围无效")
+    else:
+        analyzed_start, analyzed_end = await get_analyzed_range(novel_id)
+        if analyzed_start == 0:
+            raise HTTPException(status_code=400, detail="该小说尚未进行分析，无法拆解细章")
+        ch_start, ch_end = analyzed_start, analyzed_end
 
     # 防重复触发
     existing = _running_tasks.get(novel_id)
