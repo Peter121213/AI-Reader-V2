@@ -9,6 +9,7 @@ from src.api.routes import (
     analysis,
     analysis_passes,
     annotations,
+    arcs,
     audit_log,
     backup,
     chapters,
@@ -191,6 +192,7 @@ app.include_router(backup.router)
 app.include_router(conflicts.router)
 app.include_router(scenes.router)
 app.include_router(micro.router)
+app.include_router(arcs.router)
 app.include_router(usage.router)
 
 # WebSocket routes

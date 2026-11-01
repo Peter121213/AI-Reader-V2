@@ -54,6 +54,18 @@ CREATE TABLE IF NOT EXISTS chapter_micro_analysis (
 );
 CREATE INDEX IF NOT EXISTS idx_micro_novel ON chapter_micro_analysis(novel_id);
 
+CREATE TABLE IF NOT EXISTS story_arc_analysis (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    novel_id        TEXT NOT NULL REFERENCES novels(id) ON DELETE CASCADE,
+    arc_start       INTEGER NOT NULL,
+    arc_end         INTEGER NOT NULL,
+    arc_json        TEXT NOT NULL,
+    llm_model       TEXT,
+    analyzed_at     TEXT DEFAULT (datetime('now')),
+    UNIQUE(novel_id, arc_start, arc_end)
+);
+CREATE INDEX IF NOT EXISTS idx_arc_novel ON story_arc_analysis(novel_id);
+
 CREATE TABLE IF NOT EXISTS conversations (
     id              TEXT PRIMARY KEY,
     novel_id        TEXT NOT NULL REFERENCES novels(id) ON DELETE CASCADE,

@@ -401,6 +401,57 @@ export function startMicroAnalysis(
   })
 }
 
+// ── 大故事结构（20章窗口：1类角色剧情作用/2类角色氛围铺垫/主角关键节点）────
+export interface ArcRole {
+  name: string
+  role: string
+  development: string
+}
+export interface ArcSecondaryRole {
+  name: string
+  function: string
+}
+export interface ArcNode {
+  chapter: string
+  event: string
+  impact: string
+}
+export interface ArcItem {
+  arc_start: number
+  arc_end: number
+  analyzed_at: string
+  arc: {
+    window_summary: string
+    primary_roles: ArcRole[]
+    secondary_roles: ArcSecondaryRole[]
+    protagonist_nodes: ArcNode[]
+  }
+}
+
+export function fetchArcAnalysis(novelId: string): Promise<{ items: ArcItem[] }> {
+  return apiFetch(`/novels/${novelId}/arcs`)
+}
+
+export function fetchArcStatus(novelId: string): Promise<{
+  total_chapters: number
+  total_windows: number
+  analyzed_windows: number
+  running: boolean
+}> {
+  return apiFetch(`/novels/${novelId}/arcs/status`)
+}
+
+export function startArcAnalysis(
+  novelId: string,
+  range?: { window_start?: number; window_end?: number },
+): Promise<{ started: boolean; already_running: boolean; total_windows: number }> {
+  return apiFetch(`/novels/${novelId}/arcs/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(range ?? {}),
+  })
+}
+
 export function excludeChapters(
   novelId: string,
   chapterNums: number[],
