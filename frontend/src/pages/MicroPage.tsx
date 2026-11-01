@@ -92,7 +92,7 @@ export default function MicroPage() {
   const running = status?.running ?? false
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-4 md:p-6">
+    <div className="mx-auto h-full max-w-4xl space-y-4 overflow-y-auto p-4 md:p-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex flex-wrap items-center justify-between gap-3">
