@@ -44,6 +44,16 @@ CREATE TABLE IF NOT EXISTS chapter_facts (
     UNIQUE(novel_id, chapter_id)
 );
 
+CREATE TABLE IF NOT EXISTS chapter_micro_analysis (
+    novel_id        TEXT NOT NULL REFERENCES novels(id) ON DELETE CASCADE,
+    chapter_id      INTEGER NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
+    micro_json      TEXT NOT NULL,
+    llm_model       TEXT,
+    analyzed_at     TEXT DEFAULT (datetime('now')),
+    UNIQUE(novel_id, chapter_id)
+);
+CREATE INDEX IF NOT EXISTS idx_micro_novel ON chapter_micro_analysis(novel_id);
+
 CREATE TABLE IF NOT EXISTS conversations (
     id              TEXT PRIMARY KEY,
     novel_id        TEXT NOT NULL REFERENCES novels(id) ON DELETE CASCADE,

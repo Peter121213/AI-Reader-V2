@@ -16,6 +16,7 @@ const ChatPage = lazy(() => import("@/pages/ChatPage"))
 const EncyclopediaPage = lazy(() => import("@/pages/EncyclopediaPage"))
 const AnalysisPage = lazy(() => import("@/pages/AnalysisPage"))
 const ConflictsPage = lazy(() => import("@/pages/ConflictsPage"))
+const MicroPage = lazy(() => import("@/pages/MicroPage"))
 const ExportPage = lazy(() => import("@/pages/ExportPage"))
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"))
 
@@ -54,6 +55,7 @@ export const router = createBrowserRouter([
             { path: "factions", element: <SuspenseWrapper><FactionsPage /></SuspenseWrapper> },
             { path: "chat", element: <SuspenseWrapper><ChatPage /></SuspenseWrapper> },
             { path: "conflicts", element: <SuspenseWrapper><ConflictsPage /></SuspenseWrapper> },
+            { path: "micro", element: <SuspenseWrapper><MicroPage /></SuspenseWrapper> },
             { path: "export", element: <SuspenseWrapper><ExportPage /></SuspenseWrapper> },
           ],
         },
@@ -75,6 +77,7 @@ export const router = createBrowserRouter([
             { path: "/encyclopedia/:novelId", element: <SuspenseWrapper><EncyclopediaPage /></SuspenseWrapper> },
             { path: "/chat/:novelId", element: <SuspenseWrapper><ChatPage /></SuspenseWrapper> },
             { path: "/conflicts/:novelId", element: <SuspenseWrapper><ConflictsPage /></SuspenseWrapper> },
+            { path: "/micro/:novelId", element: <SuspenseWrapper><MicroPage /></SuspenseWrapper> },
             { path: "/export/:novelId", element: <SuspenseWrapper><ExportPage /></SuspenseWrapper> },
           ],
         },

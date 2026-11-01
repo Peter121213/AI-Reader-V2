@@ -370,6 +370,37 @@ export function fetchChapterContent(
   return apiFetch(`/novels/${novelId}/chapters/${chapterNum}`)
 }
 
+// ── 细章拆解（每章 ≤100字 分小点结构拆解）──────────────────
+export interface MicroItem {
+  chapter_num: number
+  title: string
+  analyzed_at: string
+  micro: { summary: string; points: string[] }
+}
+
+export function fetchMicroAnalysis(novelId: string): Promise<{ items: MicroItem[] }> {
+  return apiFetch(`/novels/${novelId}/micro`)
+}
+
+export function fetchMicroStatus(novelId: string): Promise<{
+  total_chapters: number
+  analyzed_chapters: number
+  running: boolean
+}> {
+  return apiFetch(`/novels/${novelId}/micro/status`)
+}
+
+export function startMicroAnalysis(
+  novelId: string,
+  range?: { chapter_start?: number; chapter_end?: number },
+): Promise<{ started: boolean; already_running: boolean }> {
+  return apiFetch(`/novels/${novelId}/micro/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(range ?? {}),
+  })
+}
+
 export function excludeChapters(
   novelId: string,
   chapterNums: number[],

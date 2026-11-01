@@ -21,6 +21,7 @@ from src.api.routes import (
     factions,
     graph,
     map,
+    micro,
     novels,
     prescan,
     scenes,
@@ -189,6 +190,7 @@ app.include_router(series_bible.router)
 app.include_router(backup.router)
 app.include_router(conflicts.router)
 app.include_router(scenes.router)
+app.include_router(micro.router)
 app.include_router(usage.router)
 
 # WebSocket routes

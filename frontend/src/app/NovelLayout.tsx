@@ -14,6 +14,7 @@ import { useTourStore, TOUR_STEPS, TOTAL_TOUR_STEPS } from "@/stores/tourStore"
 const NAV_TABS = [
   { key: "read", label: "阅读", path: "/read" },
   { key: "analysis", label: "分析", path: "/analysis" },
+  { key: "micro", label: "细章", path: "/micro" },
   { key: "timeline", label: "时间线", path: "/timeline" },
   { key: "graph", label: "关系图", path: "/graph" },
   { key: "map", label: "地图", path: "/map" },
