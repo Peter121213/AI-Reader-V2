@@ -196,11 +196,22 @@ function BorrowWindowCard({ item }: { item: BorrowItem }) {
                   >
                     {c.type}
                   </span>
+                  {"technique" in c && c.technique ? (
+                    <span className="rounded bg-blue-500/15 px-1.5 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                      手法 · {c.technique}
+                    </span>
+                  ) : null}
                   <span className="font-medium">{c.title}</span>
                 </div>
                 <div className="text-sm leading-relaxed text-foreground/90">
                   {c.description}
                 </div>
+                {"structure" in c && c.structure ? (
+                  <div className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                    <span className="font-medium text-foreground/80">三段式：</span>
+                    {c.structure}
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>
