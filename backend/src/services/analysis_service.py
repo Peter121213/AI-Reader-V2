@@ -5,6 +5,7 @@ import json
 import logging
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import WebSocket
 
@@ -33,6 +34,10 @@ from src.infra.llm_client import (
 )
 from src.models.world_structure import WorldStructure
 from src.services import embedding_service
+
+# ChromaDB embedding 专用单线程 executor：同步 CPU 嵌入调用在此线程串行执行，
+# 既不阻塞事件循环，也避免 PersistentClient 的并发访问冲突。
+_EMBED_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="chroma-embed")
 from src.services.cost_service import (
     add_monthly_usage,
     compute_cost_from_usage,
@@ -230,15 +235,25 @@ class AnalysisService:
 
     @staticmethod
     async def _index_chapter_embeddings(novel_id: str, chapter_num: int, chapter_text: str, fact) -> None:
-        """ChromaDB embedding 索引(章内并行环节之一)。同步 SDK 调用保持在
-        协程内(不引入额外线程),与另两个环节的 LLM 网络等待自然交叠。"""
+        """ChromaDB embedding 索引(章内并行环节之一)。
+
+        embedding 是同步 CPU 推理（sentence_transformers / ONNX），若直接在协程内
+        调用会阻塞事件循环，导致分析期间整个后端 API 间歇性无响应。因此放入专用
+        单线程 executor 执行：既不让事件循环阻塞，又保证 ChromaDB 访问串行化
+        （PersistentClient 非线程安全，max_workers=1 避免并发写冲突）。
+        """
         fact_data = fact.model_dump()
         fact_summary = embedding_service.build_fact_summary(fact_data)
-        embedding_service.index_chapter(
-            novel_id, chapter_num, chapter_text, fact_summary
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(
+            _EMBED_EXECUTOR,
+            embedding_service.index_chapter,
+            novel_id, chapter_num, chapter_text, fact_summary,
         )
-        embedding_service.index_entities_from_fact(
-            novel_id, chapter_num, fact_data
+        await loop.run_in_executor(
+            _EMBED_EXECUTOR,
+            embedding_service.index_entities_from_fact,
+            novel_id, chapter_num, fact_data,
         )
 
     async def start(
