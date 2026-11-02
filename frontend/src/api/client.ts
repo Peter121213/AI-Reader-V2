@@ -452,7 +452,57 @@ export function startArcAnalysis(
   })
 }
 
-export function excludeChapters(
+export interface BorrowCoolPoint {
+  chapter: string
+  type: string
+  title: string
+  description: string
+}
+export interface BorrowMapPlot {
+  chapter: string
+  title: string
+  description: string
+}
+export interface BorrowSpecialSetting {
+  chapter: string
+  title: string
+  description: string
+}
+export interface BorrowItem {
+  arc_start: number
+  arc_end: number
+  analyzed_at: string
+  borrow: {
+    window_summary: string
+    cool_points: BorrowCoolPoint[]
+    map_plots: BorrowMapPlot[]
+    special_settings: BorrowSpecialSetting[]
+  }
+}
+
+export function fetchBorrowableAnalysis(novelId: string): Promise<{ items: BorrowItem[] }> {
+  return apiFetch(`/novels/${novelId}/borrowable`)
+}
+
+export function fetchBorrowableStatus(novelId: string): Promise<{
+  total_chapters: number
+  total_windows: number
+  analyzed_windows: number
+  running: boolean
+}> {
+  return apiFetch(`/novels/${novelId}/borrowable/status`)
+}
+
+export function startBorrowableAnalysis(
+  novelId: string,
+  range?: { window_start?: number; window_end?: number },
+): Promise<{ started: boolean; already_running: boolean; total_windows: number }> {
+  return apiFetch(`/novels/${novelId}/borrowable/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(range ?? {}),
+  })
+}export function excludeChapters(
   novelId: string,
   chapterNums: number[],
   excluded: boolean,

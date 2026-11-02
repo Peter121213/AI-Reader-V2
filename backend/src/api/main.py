@@ -12,6 +12,7 @@ from src.api.routes import (
     arcs,
     audit_log,
     backup,
+    borrowable,
     chapters,
     chat,
     conflicts,
@@ -193,6 +194,7 @@ app.include_router(conflicts.router)
 app.include_router(scenes.router)
 app.include_router(micro.router)
 app.include_router(arcs.router)
+app.include_router(borrowable.router)
 app.include_router(usage.router)
 
 # WebSocket routes

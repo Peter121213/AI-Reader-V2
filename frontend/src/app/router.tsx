@@ -18,6 +18,7 @@ const AnalysisPage = lazy(() => import("@/pages/AnalysisPage"))
 const ConflictsPage = lazy(() => import("@/pages/ConflictsPage"))
 const MicroPage = lazy(() => import("@/pages/MicroPage"))
 const ArcPage = lazy(() => import("@/pages/ArcPage"))
+const BorrowablePage = lazy(() => import("@/pages/BorrowablePage"))
 const ExportPage = lazy(() => import("@/pages/ExportPage"))
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"))
 
@@ -58,6 +59,7 @@ export const router = createBrowserRouter([
             { path: "conflicts", element: <SuspenseWrapper><ConflictsPage /></SuspenseWrapper> },
             { path: "micro", element: <SuspenseWrapper><MicroPage /></SuspenseWrapper> },
             { path: "arcs", element: <SuspenseWrapper><ArcPage /></SuspenseWrapper> },
+            { path: "borrowable", element: <SuspenseWrapper><BorrowablePage /></SuspenseWrapper> },
             { path: "export", element: <SuspenseWrapper><ExportPage /></SuspenseWrapper> },
           ],
         },
@@ -81,6 +83,7 @@ export const router = createBrowserRouter([
             { path: "/conflicts/:novelId", element: <SuspenseWrapper><ConflictsPage /></SuspenseWrapper> },
             { path: "/micro/:novelId", element: <SuspenseWrapper><MicroPage /></SuspenseWrapper> },
             { path: "/arcs/:novelId", element: <SuspenseWrapper><ArcPage /></SuspenseWrapper> },
+            { path: "/borrowable/:novelId", element: <SuspenseWrapper><BorrowablePage /></SuspenseWrapper> },
             { path: "/export/:novelId", element: <SuspenseWrapper><ExportPage /></SuspenseWrapper> },
           ],
         },

@@ -16,6 +16,7 @@ const NAV_TABS = [
   { key: "analysis", label: "分析", path: "/analysis" },
   { key: "micro", label: "细章", path: "/micro" },
   { key: "arcs", label: "结构", path: "/arcs" },
+  { key: "borrowable", label: "借鉴", path: "/borrowable" },
   { key: "timeline", label: "时间线", path: "/timeline" },
   { key: "graph", label: "关系图", path: "/graph" },
   { key: "map", label: "地图", path: "/map" },

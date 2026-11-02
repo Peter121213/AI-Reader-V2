@@ -66,6 +66,18 @@ CREATE TABLE IF NOT EXISTS story_arc_analysis (
 );
 CREATE INDEX IF NOT EXISTS idx_arc_novel ON story_arc_analysis(novel_id);
 
+CREATE TABLE IF NOT EXISTS borrowable_analysis (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    novel_id        TEXT NOT NULL REFERENCES novels(id) ON DELETE CASCADE,
+    arc_start       INTEGER NOT NULL,
+    arc_end         INTEGER NOT NULL,
+    borrow_json     TEXT NOT NULL,
+    llm_model       TEXT,
+    analyzed_at     TEXT DEFAULT (datetime('now')),
+    UNIQUE(novel_id, arc_start, arc_end)
+);
+CREATE INDEX IF NOT EXISTS idx_borrow_novel ON borrowable_analysis(novel_id);
+
 CREATE TABLE IF NOT EXISTS conversations (
     id              TEXT PRIMARY KEY,
     novel_id        TEXT NOT NULL REFERENCES novels(id) ON DELETE CASCADE,
