@@ -502,6 +502,47 @@ export function startBorrowableAnalysis(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(range ?? {}),
   })
+}
+
+export interface ForeshadowItemEntry {
+  plant_chapter: number
+  recall_chapter: number | null
+  content: string
+  status: string
+  note: string
+}
+export interface ForeshadowItem {
+  arc_start: number
+  arc_end: number
+  analyzed_at: string
+  foreshadow: {
+    window_summary: string
+    foreshadows: ForeshadowItemEntry[]
+  }
+}
+
+export function fetchForeshadowAnalysis(novelId: string): Promise<{ items: ForeshadowItem[] }> {
+  return apiFetch(`/novels/${novelId}/foreshadow`)
+}
+
+export function fetchForeshadowStatus(novelId: string): Promise<{
+  total_chapters: number
+  total_windows: number
+  analyzed_windows: number
+  running: boolean
+}> {
+  return apiFetch(`/novels/${novelId}/foreshadow/status`)
+}
+
+export function startForeshadowAnalysis(
+  novelId: string,
+  range?: { window_start?: number; window_end?: number },
+): Promise<{ started: boolean; already_running: boolean; total_windows: number }> {
+  return apiFetch(`/novels/${novelId}/foreshadow/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(range ?? {}),
+  })
 }export function excludeChapters(
   novelId: string,
   chapterNums: number[],

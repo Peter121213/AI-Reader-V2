@@ -78,6 +78,18 @@ CREATE TABLE IF NOT EXISTS borrowable_analysis (
 );
 CREATE INDEX IF NOT EXISTS idx_borrow_novel ON borrowable_analysis(novel_id);
 
+CREATE TABLE IF NOT EXISTS foreshadow_analysis (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    novel_id        TEXT NOT NULL REFERENCES novels(id) ON DELETE CASCADE,
+    arc_start       INTEGER NOT NULL,
+    arc_end         INTEGER NOT NULL,
+    foreshadow_json TEXT NOT NULL,
+    llm_model       TEXT,
+    analyzed_at     TEXT DEFAULT (datetime('now')),
+    UNIQUE(novel_id, arc_start, arc_end)
+);
+CREATE INDEX IF NOT EXISTS idx_foreshadow_novel ON foreshadow_analysis(novel_id);
+
 CREATE TABLE IF NOT EXISTS conversations (
     id              TEXT PRIMARY KEY,
     novel_id        TEXT NOT NULL REFERENCES novels(id) ON DELETE CASCADE,
